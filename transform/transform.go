@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PaesslerAG/jsonpath"
+	"github.com/antchfx/xmlquery"
 )
 
 type transformMethod int32
@@ -27,28 +27,26 @@ type transformOperationJSON struct {
 	Args map[string]string `json:"args"`
 }
 
-// transformInstruction defines a JSONPath for a transform and an optional set of operations to be performed on the
-// data from that path.
-type transformInstruction struct {
+type transformInstructionXML struct {
 	// For JSONPath format see http://goessner.net/articles/JsonPath/
-	jsonPath   string
+	xmlPath    string
 	Operations []transformOperation `json:"operations"`
 }
 
 type transformInstructionJSON struct {
-	JsonPath   string                   `json:"jsonPath"`
+	XmlPath    string                   `json:"xmlPath"`
 	Operations []transformOperationJSON `json:"operations"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface, this function exists to properly map the transformOperation.
-func (ti *transformInstruction) UnmarshalJSON(data []byte) error {
+func (ti *transformInstructionXML) UnmarshalJSON(data []byte) error {
 	var jti transformInstructionJSON
 
 	if err := json.Unmarshal(data, &jti); err != nil {
 		return fmt.Errorf("failed to extract transform from JSON: %v", err)
 	}
 
-	ti.jsonPath = jti.JsonPath
+	ti.xmlPath = jti.XmlPath
 	ti.Operations = []transformOperation{}
 
 	for _, toj := range jti.Operations {
@@ -82,15 +80,15 @@ func (ti *transformInstruction) UnmarshalJSON(data []byte) error {
 // It handles the logic for finding the value to be transformed and chaining the Operations.
 // It will not error if the value is not found, rather it returns nil for the value.
 // If a conversion or operation fails an error is returned.
-func (ti *transformInstruction) transform(in interface{}, fieldType string, modifier pathModifier) (interface{}, error) {
-	path := ti.jsonPath
+func (ti *transformInstructionXML) transform(in interface{}, fieldType string, modifier pathModifier) (interface{}, error) {
+	path := ti.xmlPath
 	if modifier != nil {
 		path = modifier(path)
 	}
-	rawValue, err := jsonpath.Get(path, in)
-	if err != nil {
-		return nil, nil
-	}
+
+	node := in.(*xmlquery.Node)
+	rawValue := xmlquery.Find(node, path)
+
 	if rawValue == nil {
 		return nil, nil
 	}
@@ -116,13 +114,13 @@ func (ti *transformInstruction) transform(in interface{}, fieldType string, modi
 // trransformInstructions defines a set of instructions and a method for combining their results.
 // The default method is to take the first non-nil result.
 type transformInstructions struct {
-	From          []*transformInstruction `json:"from"`
+	From          []*transformInstructionXML `json:"from"`
 	Method        transformMethod         `json:"method"`
 	MethodOptions methodOptions           `json:"methodOptions"`
 }
 
 type transformInstructionsJSON struct {
-	From          []*transformInstruction `json:"from"`
+	From          []*transformInstructionXML `json:"from"`
 	Method        string                  `json:"method"`
 	MethodOptions methodOptions           `json:"methodOptions"`
 }
@@ -164,7 +162,7 @@ func (tis *transformInstructions) transform(in interface{}, fieldType string, mo
 	var concatResult bool
 	switch tis.Method {
 	case last:
-		var newFrom []*transformInstruction
+		var newFrom []*transformInstructionXML
 		for i := len(tis.From) - 1; i >= 0; i-- {
 			newFrom = append(newFrom, tis.From[i])
 		}
@@ -201,8 +199,8 @@ func (tis *transformInstructions) transform(in interface{}, fieldType string, mo
 // old.
 func (tis *transformInstructions) replaceJSONPathPrefix(old, new string) {
 	for _, instruction := range tis.From {
-		if strings.HasPrefix(instruction.jsonPath, old) {
-			instruction.jsonPath = strings.Replace(instruction.jsonPath, old, new, 1)
+		if strings.HasPrefix(instruction.xmlPath, old) {
+			instruction.xmlPath = strings.Replace(instruction.xmlPath, old, new, 1)
 		}
 	}
 }

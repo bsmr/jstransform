@@ -1,0 +1,90 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "teams": {
+            "type": "array",
+            "transform": {
+                "sport": {
+                    "from": [
+                        {
+                            "xmlPath": "//team"
+                        }
+                    ]
+                }
+            },
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "transform": {
+                            "sport": {
+                                "from": [
+                                    {
+                                        "xmlPath": "id"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "name": {
+                        "type": "string",
+                        "transform": {
+                            "sport": {
+                                "from": [
+                                    {
+                                        "xmlPath": "name"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "firstName": {
+                        "type": "string",
+                        "transform": {
+                            "sport": {
+                                "from": [
+                                    {
+                                        "xmlPath": "name[@type='first']"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "nickName": {
+                        "type": "string",
+                        "transform": {
+                            "sport": {
+                                "from": [
+                                    {
+                                        "xmlPath": "name[@type='nick']"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "shortName": {
+                        "type": "string",
+                        "transform": {
+                            "sport": {
+                                "from": [
+                                    {
+                                        "xmlPath": "name[@type='short']"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "firstName",
+                    "shortName",
+                    "nickName"
+                ]
+            }
+        }
+    }
+}
